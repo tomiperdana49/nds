@@ -1,0 +1,16 @@
+CREATE TABLE po_documents (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    phone VARCHAR(20) NOT NULL,
+    reference_id VARCHAR(255) NULL,
+    code VARCHAR(255) NOT NULL,
+    file_id VARCHAR(255) NOT NULL,
+    file_name VARCHAR(255) NOT NULL,
+    is_signed BOOLEAN DEFAULT FALSE,
+    signed_at TIMESTAMP NULL,
+    doc_status VARCHAR(20) NOT NULL DEFAULT 'approved',
+    rejected_at TIMESTAMP NULL,
+    reject_reason TEXT NULL,
+    rejected_by VARCHAR(255) NULL,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+);
