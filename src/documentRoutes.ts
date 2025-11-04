@@ -237,8 +237,8 @@ export function setupDocumentRoutes(app: Express) {
                 return res.status(404).send({ error: "Document not found or file_id mismatch." });
             }
 
-            const isSigned = document.signers.every(s => s.status === 'signed');
-            const signedAt = document.signers.find(s => s.status === 'signed')?.signed_at || null;
+            const isSigned = signer.status === 'signed';
+            const signedAt = signer.status === 'signed' ? signer.signed_at : null;
             const status = document.doc_status;
             const reason = document.reject_reason;
             const picRejected = document.rejected_by;
@@ -283,10 +283,6 @@ export function setupDocumentRoutes(app: Express) {
             // Build activity timeline
             let previousTime = document.created_at;
             for (const signer of document.signers) {
-                if (signer.status === 'pending') {
-                    continue;
-                }
-
                 const receivedTime = previousTime.toISOString();
                 const actionTime = signer.status === 'signed' ? (signer.signed_at ? signer.signed_at.toISOString() : '') : (signer.status === 'rejected' ? (document.rejected_at ? document.rejected_at.toISOString() : '') : '');
                 const isSigned = signer.status === 'signed' ? 'TRUE' : 'FALSE';
