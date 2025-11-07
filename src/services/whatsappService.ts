@@ -84,7 +84,7 @@ export async function sendToWhatsappInternal(phoneNumber: string, params: any): 
     }
 }
 
-export async function sendHsmMetaMessageLink(phoneNumber: string, body: any): Promise<any> {
+export async function sendHsmMetaMessageLink(phoneNumber: string, nameDoc: string, sender: string, docLink: string): Promise<any> {
     try {
         const phone_number_id = process.env.NWA_PHONE_NUMBER_ID!;
         const apiUrl = `https://nwc.nusa.net.id/api/messages?phone_number_id=${phone_number_id}&no_save=1`;
@@ -98,13 +98,41 @@ export async function sendHsmMetaMessageLink(phoneNumber: string, body: any): Pr
             messaging_product: 'whatsapp',
             recipient_type: 'individual',
             to: phoneNumber,
-            type: 'text',
-            text: {
-                body: body,
+            type: 'template',
+            template: {
+                namespace: '47d9dc76_80fc_4c77_95f5_869dfeb41766',
+                name: 'docs_send_document',
+                language: {
+                    code: 'id',
+                },
+                components: [
+                    {
+                        type: 'body',
+                        parameters: [
+                            {
+                                type: 'text',
+                                text: nameDoc,
+                            },
+                            {
+                                type: 'text',
+                                text: sender,
+                            },
+                            {
+                                type: 'text',
+                                text: docLink,
+                            }
+                        ],
+                    },
+                ],
             },
         };
 
         const response = await axios.post(apiUrl, requestBody, { headers });
+
+        if (!response.status.toString().startsWith('2')) {
+            console.error('Error response from WhatsApp API:', response.data.error);
+            throw new Error(`WhatsApp API Error: ${response.data.error.message}`);
+        }
 
         return response.data;
     } catch (error) {

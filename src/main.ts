@@ -34,13 +34,17 @@ async function sendEmail(
   emailHtml: string
 ) {
   // Create a transporter object using Gmail's SMTP server
+  const HOST_SMTP = process.env.HOST_SMTP!;
+  const SMTP_PORT = process.env.SMTP_PORT!;
+  const SMTP_USER = process.env.SMTP_USER!;
+  const SMTP_PAS = process.env.SMTP_PAS!;
   let transporter = nodemailer.createTransport({
-    host: 'smtp1.nusa.net.id',
-    port: 587,
+    host: HOST_SMTP,
+    port: SMTP_PORT,
     secure: false, // Use TLS
     auth: {
-      user: 'nds@nusa.net.id',
-      pass: '1puWjDQWQd1yBJ4GlkYiSg=='
+      user: SMTP_USER,
+      pass: SMTP_PAS
     }
   });
 
