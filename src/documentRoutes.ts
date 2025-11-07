@@ -88,8 +88,7 @@ export function setupDocumentRoutes(app: Express) {
             if (createdDocument.signers.length > 0) {
                 const firstSigner = createdDocument.signers[0];
                 const url = buildPoUrl(fileId, firstSigner.code, createdDocument.use_stempel);
-                const body = `Silahkan tanda tangani dokumen *${file.originalname}* dari PT Media Antar Nusa: ${url}`;
-                await sendHsmMetaMessageLink(firstSigner.phone, body);
+                await sendHsmMetaMessageLink(firstSigner.phone, file.originalname, 'PT Media Antar Nusa', url);
             }
 
             res.send({ success: true, fileId: fileId, message: "Document created successfully" });
@@ -167,8 +166,7 @@ export function setupDocumentRoutes(app: Express) {
                 }
                 if (nextSigner) {
                     const url = buildPoUrl(file_id, nextSigner.code, document.use_stempel);
-                    const body = `Silahkan tanda tangani dokumen *${document.file_name}* dari PT Media Antar Nusa: ${url}`;
-                    await sendHsmMetaMessageLink(nextSigner.phone, body);
+                    await sendHsmMetaMessageLink(nextSigner.phone, document.file_name, 'PT Media Antar Nusa', url);
                 }
             }
 
