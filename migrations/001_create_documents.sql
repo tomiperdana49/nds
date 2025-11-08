@@ -1,0 +1,27 @@
+CREATE TABLE documents (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    reference_id VARCHAR(255) NULL,
+    file_id VARCHAR(255) NOT NULL,
+    file_name VARCHAR(255) NOT NULL,
+    is_signed BOOLEAN DEFAULT FALSE,
+    signed_at TIMESTAMP NULL,
+    doc_status VARCHAR(20) NOT NULL DEFAULT 'approved',
+    rejected_at TIMESTAMP NULL,
+    reject_reason TEXT NULL,
+    rejected_by VARCHAR(255) NULL,
+    use_stempel BOOLEAN DEFAULT FALSE,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+);
+
+CREATE TABLE signers (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    document_id INT NOT NULL,
+    phone VARCHAR(20) NOT NULL,
+    code VARCHAR(255) NOT NULL,
+    status VARCHAR(20) NOT NULL DEFAULT 'pending',
+    signed_at TIMESTAMP NULL,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    FOREIGN KEY (document_id) REFERENCES documents(id) ON DELETE CASCADE
+);

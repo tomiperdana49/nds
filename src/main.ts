@@ -7,7 +7,7 @@ import multer from "multer";
 import { Readable } from 'stream';
 import { google } from "googleapis";
 import fetch from "node-fetch";
-import { setupPoRoutes } from './doc_main';
+import { setupDocumentRoutes } from './documentRoutes';
 
 const axios = require('axios');
 const PORT = process.env.PORT || 3000;
@@ -20,7 +20,7 @@ const SERVICE_ACCOUNT_KEY = process.env.SERVICE_ACCOUNT_KEY!;
 const app = express();
 app.use(express.json());
 
-setupPoRoutes(app);
+setupDocumentRoutes(app);
 
 const storage = multer.memoryStorage();
 const upload = multer({ storage: storage });

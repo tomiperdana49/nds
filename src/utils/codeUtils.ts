@@ -5,11 +5,11 @@ export function generateRandomCode(): string {
     return code;
 }
 
-export function buildPoUrl(fileId: string, code: string, baseUrl: string = 'https://nds.nusa.net.id'): string {
+export function buildPoUrl(fileId: string, code: string, useStempel: boolean = false, baseUrl: string = 'https://nds.nusa.net.id'): string {
     const url = new URL(baseUrl);
     url.searchParams.set('id', fileId);
     url.searchParams.set('code', code);
     url.searchParams.set('type', 'po');
-    url.searchParams.set('stempelSigner', 'FALSE');
+    url.searchParams.set('stempelSigner', useStempel ? 'TRUE' : 'FALSE');
     return url.toString();
 }
