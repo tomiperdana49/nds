@@ -26,6 +26,7 @@ export interface Document {
     use_stempel: boolean;
     created_at: Date;
     updated_at: Date;
+    callback_url: string | null;
     signers: Signer[];
 }
 
@@ -36,13 +37,13 @@ export class DocumentRepository {
         return rows as Signer[];
     }
 
-    async create(phones: string[], reference_id: string | null, file_id: string, file_name: string, use_stempel: boolean): Promise<void> {
+    async create(phones: string[], reference_id: string | null, file_id: string, file_name: string, use_stempel: boolean, callback_url: string | null): Promise<void> {
         const connection = await pool.getConnection();
         try {
             await connection.beginTransaction();
 
-            const docQuery = 'INSERT INTO documents (reference_id, file_id, file_name, is_signed, doc_status, use_stempel) VALUES (?, ?, ?, ?, ?, ?)';
-            const [result] = await connection.execute(docQuery, [reference_id, file_id, file_name, false, 'approved', use_stempel]);
+            const docQuery = 'INSERT INTO documents (reference_id, file_id, file_name, is_signed, doc_status, use_stempel, callback_url) VALUES (?, ?, ?, ?, ?, ?, ?)';
+            const [result] = await connection.execute(docQuery, [reference_id, file_id, file_name, false, 'approved', use_stempel, callback_url]);
             const docId = (result as any).insertId;
 
             const signerQuery = 'INSERT INTO signers (document_id, phone, code, status) VALUES (?, ?, ?, ?)';

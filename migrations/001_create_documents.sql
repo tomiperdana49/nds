@@ -10,6 +10,7 @@ CREATE TABLE documents (
     reject_reason TEXT NULL,
     rejected_by VARCHAR(255) NULL,
     use_stempel BOOLEAN DEFAULT FALSE,
+    callback_url TEXT NULL,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
 );
