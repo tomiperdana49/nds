@@ -5,6 +5,7 @@ import { google } from "googleapis";
 import { sendHsmMeta, sendToWhatsappInternal, sendHsmMetaMessageLink } from './services/whatsappService';
 import { generateRandomCode, buildPoUrl } from './utils/codeUtils';
 import { DocumentRepository } from './repositories/documentRepository';
+import axios from "axios";
 
 const storage = multer.memoryStorage();
 const upload = multer({ storage: storage });
@@ -19,7 +20,7 @@ export function setupDocumentRoutes(app: Express) {
 
     app.post("/doc/create", upload.single("file"), async (req, res) => {
         const file = req.file;
-        let { phones, reference_id, use_stempel } = req.body;
+        let { phones, reference_id, use_stempel, callback_url } = req.body;
 
         let useStempel = false;
         if (typeof use_stempel === 'boolean') {
@@ -78,7 +79,7 @@ export function setupDocumentRoutes(app: Express) {
 
             const code = generateRandomCode();
 
-            await repository.create(formattedPhones, reference_id ?? '', fileId, file.originalname, useStempel);
+            await repository.create(formattedPhones, reference_id ?? null, fileId, file.originalname, useStempel, callback_url ?? null);
 
             const createdDocument = await repository.findByFileId(fileId);
             if (!createdDocument) {
@@ -155,6 +156,19 @@ export function setupDocumentRoutes(app: Express) {
             const allSigned = updatedDocument!.signers.every(s => s.status === 'signed');
             if (allSigned) {
                 await repository.updateSigned(document.id);
+                if (document.callback_url) {
+                    let formData = new FormData();
+                    const blob = new Blob([new Uint8Array(file.buffer)]);
+                    formData.append('file', blob, document.file_name);
+                    formData.append('status', 'approved');
+
+                    await axios.post(
+                        document.callback_url,
+                        formData,
+                    ).catch(err => {
+                        console.error('Callback URL error:', err);
+                    });
+                }
             } else {
                 const currentIndex = updatedDocument!.signers.findIndex(s => s.id === signer.id);
                 let nextSigner = null;
@@ -207,6 +221,45 @@ export function setupDocumentRoutes(app: Express) {
 
             await repository.rejectSigner(signer.id);
             await repository.rejectDocument(document.id, reason, signer.phone);
+
+            if (document.callback_url) {
+                let fileBuffer: Buffer;
+                try {
+                    const auth = new google.auth.JWT(
+                        SERVICE_ACCOUNT_EMAIL,
+                        undefined,
+                        SERVICE_ACCOUNT_KEY.replace(/\\n/g, "\n"),
+                        ["https://www.googleapis.com/auth/drive"]
+                    );
+
+                    await auth.authorize();
+                    const drive = google.drive({ version: "v3", auth });
+
+                    const response = await drive.files.get(
+                        { fileId: file_id, alt: 'media' },
+                        { responseType: 'arraybuffer' }
+                    );
+                    fileBuffer = Buffer.from(response.data as ArrayBuffer);
+                } catch (error) {
+                    console.error('Error fetching file from Google Drive for callback:', error);
+                    res.status(500).send({ error: "Failed to fetch document for callback" });
+                    return;
+                }
+
+                let formData = new FormData();
+                const blob = new Blob([new Uint8Array(fileBuffer)]);
+                formData.append('file', blob, document.file_name);
+                formData.append('status', 'rejected');
+                formData.append('reject_reason', reason);
+                formData.append('rejected_by', signer.phone);
+
+                await axios.post(
+                    document.callback_url!,
+                    formData,
+                ).catch(err => {
+                    console.error('Callback URL error:', err);
+                });
+            }
 
             res.send({ success: true, message: "Signer rejected successfully" });
         } catch (error) {
