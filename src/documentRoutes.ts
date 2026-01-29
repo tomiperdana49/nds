@@ -2,8 +2,8 @@ import { Express } from "express";
 import multer from "multer";
 import { Readable } from 'stream';
 import { google } from "googleapis";
-import { sendHsmMeta, sendToWhatsappInternal, sendHsmMetaMessageLink } from './services/whatsappService';
-import { generateRandomCode, buildPoUrl } from './utils/codeUtils';
+import { sendHsmMeta } from './services/whatsappService';
+import { generateRandomCode, buildPoUrl, getGreeting } from './utils/codeUtils';
 import { DocumentRepository } from './repositories/documentRepository';
 import axios from "axios";
 
@@ -77,8 +77,6 @@ export function setupDocumentRoutes(app: Express) {
 
             const fileId = created.data.id!;
 
-            const code = generateRandomCode();
-
             await repository.create(formattedPhones, reference_id ?? null, fileId, file.originalname, useStempel, callback_url ?? null);
 
             const createdDocument = await repository.findByFileId(fileId);
@@ -88,11 +86,15 @@ export function setupDocumentRoutes(app: Express) {
 
             if (createdDocument.signers.length > 0) {
                 const firstSigner = createdDocument.signers[0];
-                const url = buildPoUrl(fileId, firstSigner.code, createdDocument.use_stempel);
-                await sendHsmMetaMessageLink(firstSigner.phone, file.originalname, 'PT Media Antar Nusa', url);
+                await sendHsmMeta(firstSigner.phone, getGreeting(), file.originalname, 'PT. Media Antar Nusa');
             }
 
-            res.send({ success: true, fileId: fileId, message: "Document created successfully" });
+            res.send({
+                success: true,
+                fileId: fileId,
+                codes: createdDocument.signers.map(s => s.code),
+                message: "Document created successfully"
+            });
         } catch (error) {
             console.error(error);
             res.status(500).send({ error: "Failed to create document" });
@@ -180,7 +182,7 @@ export function setupDocumentRoutes(app: Express) {
                 }
                 if (nextSigner) {
                     const url = buildPoUrl(file_id, nextSigner.code, document.use_stempel);
-                    await sendHsmMetaMessageLink(nextSigner.phone, document.file_name, 'PT Media Antar Nusa', url);
+                    await sendHsmMeta(nextSigner.phone, getGreeting(), document.file_name, 'PT. Media Antar Nusa');
                 }
             }
 

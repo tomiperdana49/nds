@@ -8,6 +8,8 @@ import { Readable } from 'stream';
 import { google } from "googleapis";
 import fetch from "node-fetch";
 import { setupDocumentRoutes } from './documentRoutes';
+import { buildPoUrl, getGreeting } from "./utils/codeUtils";
+import { DocumentRepository } from "./repositories/documentRepository";
 
 const axios = require('axios');
 const PORT = process.env.PORT || 3000;
@@ -266,20 +268,6 @@ app.post("/update", upload.single("file"), async (req, res) => {
     res.status(500).send({ error: "File update failed" });
   }
 });
-
-function getGreeting() {
-  const currentHour = new Date().getHours(); // Get the current hour (0-23)
-
-  if (currentHour >= 5 && currentHour < 11) {
-    return "Pagi!";  // Morning (5 AM to 10:59 AM)
-  } else if (currentHour >= 11 && currentHour < 15) {
-    return "Siang!"; // Afternoon (11 AM to 2:59 PM)
-  } else if (currentHour >= 15 && currentHour < 18) {
-    return "Sore!";  // Evening (3 PM to 5:59 PM)
-  } else {
-    return "Malam!"; // Night (6 PM to 4:59 AM)
-  }
-}
 
 async function sendHsmMetaMesaageLink(phoneNumber: string, body: any, phone_number_id: any): Promise<any> {
   try {
@@ -808,8 +796,30 @@ app.post("/get-send-link", async (req, res) => {
     res.setHeader('Content-Type', 'application/json');
     res.status(200).json({ message: "Proses sedang berjalan di latar belakang" });
 
+    function delay(ms: number) {
+      return new Promise(resolve => setTimeout(resolve, ms));
+    }
+
     // Mulai proses di latar belakang
     (async () => {
+      // Ambil juga dari database data yang belum sign berdasarkan nomor telepon
+      const repo = new DocumentRepository();
+      const formattedPhoneNumber = PhoneNumber(phone, 'ID').formatInternational();
+      const unsignedDocuments = await repo.getDocumentsToSignBySigner(formattedPhoneNumber);
+      console.log("Database");
+      console.log(unsignedDocuments.length);
+      for (const doc of unsignedDocuments) {
+        const docUrl = buildPoUrl(doc.document.file_id, doc.signer.code, doc.document.use_stempel);
+        let body = `Documen *${doc.document.file_name}* silahkan click link untuk menandatangani: ${docUrl}`;
+        await sendHsmMetaMesaageLink(phone, body, phone_number_id);
+        resultUrls.push({
+          filename: doc.document.file_name,
+          link: docUrl
+        });
+        // Delay of 2 seconds
+        await delay(2000);
+      }
+
       for (const nameSheet of nameSheets) {
         const response = await drive.files.list({
           q: `name='${nameSheet}' and mimeType='application/vnd.google-apps.spreadsheet'`,
@@ -843,10 +853,6 @@ app.post("/get-send-link", async (req, res) => {
 
         if (filteredRows.length === 0) {
           continue;
-        }
-
-        function delay(ms: number) {
-          return new Promise(resolve => setTimeout(resolve, ms));
         }
 
         for (const [index, row] of filteredRows.entries()) {
@@ -892,6 +898,7 @@ app.post("/get-send-link", async (req, res) => {
         }
       }
 
+      // Jika tidak ada dokumen yang perlu ditandatangani
       if (resultUrls.length === 0) {
         let body = `Tidak ada dokumen yang perlu ditandatangani.`;
         await sendHsmMetaMesaageLink(phone, body, phone_number_id);

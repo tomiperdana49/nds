@@ -30,6 +30,11 @@ export interface Document {
     signers: Signer[];
 }
 
+export interface DocumentToSign {
+    document: Document;
+    signer: Signer;
+}
+
 export class DocumentRepository {
     private async getSignersForDocument(docId: number): Promise<Signer[]> {
         const query = 'SELECT * FROM signers WHERE document_id = ? ORDER BY id ASC';
@@ -106,5 +111,31 @@ export class DocumentRepository {
     async updateSigned(id: number): Promise<void> {
         const query = 'UPDATE documents SET is_signed = TRUE, signed_at = NOW(), doc_status = ? WHERE id = ?';
         await pool.execute(query, ['approved', id]);
+    }
+
+    async getDocumentsToSignBySigner(phone: string): Promise<DocumentToSign[]> {
+        const query = `
+            SELECT
+                d.*,
+                s.*
+            FROM documents d
+            JOIN signers s ON
+                d.id = s.document_id
+                AND s.status = 'pending'
+            WHERE s.phone = ?
+            ORDER BY d.created_at DESC
+        `;
+        const [rows] = await pool.execute(query, [phone]);
+        const documents = rows as Document[];
+        const signers = rows as Signer[];
+        let results: DocumentToSign[] = [];
+        for (let i = 0; i < documents.length; i++) {
+            results.push({
+                document: documents[i],
+                signer: signers[i],
+            });
+        }
+
+        return results;
     }
 }
